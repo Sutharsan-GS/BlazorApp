@@ -1,0 +1,114 @@
+﻿@page "/PeopleData"
+@using BlazorApp1.Shared
+@using System
+@using System.Reflection
+@using System.Collections.Generic;
+@inject HttpClient Http
+
+
+@if (Pageloading)
+{
+    <div style=" margin-top:23%" align="center">
+        <p>Loading Please Wait !:)</p>
+        <br/>
+        <div class="spinner-border" align="center"></div>
+    </div>
+}
+else
+{
+
+    @if (PeopleList.Count > 0)
+    {
+        <h3 align="center">People Data</h3>
+  
+  
+     
+        <DataGrid InputList=@PeopleList Context="people" PrimaryKeyPropertyName="Id" RecordsPerPage="4" DefineProperties="true" Properties="@PeopleProp" WasmApp="true"
+              SaveNewEvent=@(Addpeople) UpdateEvent=@(Updatepeople) DeleteEvent="@(DeletePeople)"  >
+
+                <EditableFormInRowTemplate >
+                    
+                    <tr>
+                        <td>
+                            <input type="number" id="PeopleIdInput" @bind="people.Id" placeholder="Id" disabled />
+                        </td>
+                        <td>
+                            <input type="text" id="PeopleNameInput" @bind="people.Name" placeholder="Name" />
+                        </td>
+                        <td>
+                           <input type="number" id="PeopleAgeInput" @bind="people.Age" placeholder="Age" />
+                        </td>
+                        
+                    </tr>
+
+                </EditableFormInRowTemplate>
+
+        </DataGrid>
+
+       
+    }
+    else
+    {
+        <p>No People Data found</p>
+    }
+}
+
+
+@code {
+    public bool Pageloading = true;
+    public List<People> PeopleList = new List<People>();
+    public People RefObject = new People();
+
+
+    public PropertyInfo[] PeopleProp = typeof(People).GetProperties();
+
+    protected override async Task OnInitializedAsync()
+    {
+        PeopleList = await Http.GetFromJsonAsync<List<People>>("People/api/Get");
+        Pageloading = false;
+    }
+
+
+    public People SetNewPeopleObj()
+    {
+
+        return new People();
+    }
+
+    public async Task Addpeople(int index)
+    {
+        await Http.PostAsJsonAsync("People/api/Add", PeopleList[index]);
+        await InvokeAsync(() =>
+                {
+
+                    StateHasChanged();
+                });
+        PeopleList = await Http.GetFromJsonAsync<List<People>>("People/api/Get");
+
+        
+    }
+
+    public async Task Updatepeople(int index)
+    {
+        await Http.PutAsJsonAsync("People/api/Update", PeopleList[index]);
+        await InvokeAsync(() =>
+                {
+
+                    StateHasChanged();
+                });
+
+    }
+
+    public async Task DeletePeople(int id)
+    {
+        // The Delete Accepts only Ids of the Object
+        await Http.DeleteAsync("People/api/Delete/" + id);
+        await InvokeAsync(() =>
+                {
+
+                    StateHasChanged();
+                });
+        PeopleList = await Http.GetFromJsonAsync<List<People>>("People/api/Get");
+    }
+
+}

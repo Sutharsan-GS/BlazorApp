@@ -1,0 +1,583 @@
+﻿@page "/DataGrid"
+@using System
+@using System.Reflection
+@using System.Collections.Generic;
+@using BlazorApp1.Shared
+
+@typeparam TItem
+
+
+<div align="center" style="overflow-x:scroll"
+    <table class="table table-primary table-hover table-responsive  align-middle table-sm table-condensed" style="overflow-x:scroll;">
+
+        <thead class=" table-bordered">
+
+            <tr>
+                <th class="table-primary" scope="col" colspan="100%" align="center">
+                    <div class="btn-group-sm" role="group" align="center">
+                        <button class="btn btn-outline-dark" @onclick="Addnew">Add</button>
+                        <button class="btn btn-outline-primary" @onclick="() => EditRow(SelectedObj)">Edit</button>
+                        <button class="btn btn-outline-success" @onclick="Update" disabled="@(!Validate())">Update</button>
+                        <button class="btn btn-outline-primary" @onclick="Cancel">Cancel</button>
+                        <button class="btn btn-outline-danger" @onclick="Delete">Delete</button>
+                    </div>
+
+                </th>
+            </tr>
+        </thead>
+
+        <thead class="table-dark" >
+            @if (Headings.Count > 0)
+            {
+                <tr>
+                    @foreach (var name in Headings)
+                    {
+                        <th class="table-primary" scope="col" colspan="1" >@name</th>
+                    }
+                </tr>
+
+            }
+            else
+            {
+                @if (DefinedAHeadingTemplate)
+                {
+                    <tr>
+                        @HeadingRowTemplate
+                    </tr>
+                }
+                else
+                {
+                    <tr>
+                        @foreach (PropertyInfo prop in Properties)
+                        {
+                            <td class="table-primary" scope="col">@(prop.Name)</td>
+                        }
+                    </tr>
+
+                }
+            }
+
+        </thead>
+
+        <tbody class=" table-primary">
+            @if (AddingNewRow && !EditingARow)
+            {
+                @EditableFormInRowTemplate(AddNewObj)
+            }
+            @if (InputList.Count > 0 && InputPageList.Count > 0)
+            {
+                @foreach (var Obj in InputPageList[PageIndex])
+                {
+
+                    @if (EditingThisObj(Obj) && EditingARow && !AddingNewRow)
+                    {
+
+                        @EditableFormInRowTemplate(SelectedObj)
+
+                    }
+                    else
+                    {
+                        @if (DefinedARowTemplate)
+                        {
+                            <tr class="@focusIfSelected(Obj)" @onclick="(() => SelectARow(Obj) )">
+
+                                @RowTemplate(Obj)
+
+                            </tr>
+
+                        }
+                        else
+                        {
+                            <tr class="@focusIfSelected(Obj)" @onclick="(() => SelectARow(Obj)) " @ondblclick="(() => {SelectARow(Obj);EditRow(Obj);} ) ">
+                                @foreach (PropertyInfo prop in Properties)
+                                {
+                                    <td class="table-primary" scope="col">@(prop.GetValue(Obj, null))</td>
+                                }
+                            </tr>
+                        }
+                    }
+
+                }
+
+            }
+
+            <!-- ------------------ Paging Buttons ------------- -->
+
+
+            <tr>
+
+                <td class="table-primary" scope="col" colspan="100%" align="center">
+                    <div class="btn-group btn-group-sm" role="group" align="center">
+
+                        <button class="btn btn-outline-dark btn-sm " style="font-size:small" @onclick="prev => {PageIndex = 0;}" disabled="@(PageIndex == 0)">First</button>
+
+                        <button class="btn btn-outline-dark btn-sm " style="font-size:small" @onclick="prev => Previous()" disabled="@(PageIndex == 0)">Prev</button>
+
+                        @if (PageIndex - 3 >= 0)
+                        {
+                            <button class="btn btn-outline-dark btn-sm" style="font-size:small" @onclick="() => AsignIndex(PageIndex-3)">@(PageIndex - 2)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark btn-sm" disabled></button>
+                        }
+                        @if (PageIndex - 2 >= 0)
+                        {
+                            <button class="btn btn-outline-dark btn-sm" style="font-size:small" @onclick="() => AsignIndex(PageIndex-2)">@(PageIndex - 1)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark btn-sm" disabled></button>
+                        }
+
+                        @if (PageIndex - 1 >= 0)
+                        {
+                            <button class="btn btn-outline-dark btn-sm" style="font-size:small" @onclick="() => AsignIndex(PageIndex-1)">@(PageIndex)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark btn-sm" disabled></button>
+                        }
+
+                        <button class="btn btn-dark btn-sm" style="font-size:small" disabled>@(PageIndex + 1)</button> <!--Current page-->
+                        @if (PageIndex + 1 < InputPageList.Count)
+                        {
+                            <button class="btn btn-outline-dark" style="font-size:small" @onclick="() => AsignIndex(PageIndex+1)">@(PageIndex + 2)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark" disabled></button>
+                        }
+
+                        @if (PageIndex + 2 < InputPageList.Count)
+                        {
+                            <button class="btn btn-outline-dark" style="font-size:small" @onclick="() => AsignIndex(PageIndex+2)">@(PageIndex + 3)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark" disabled></button>
+                        }
+
+                        @if (PageIndex + 3 < InputPageList.Count)
+                        {
+                            <button class="btn btn-outline-dark" style="font-size:small" @onclick="() => AsignIndex(PageIndex+3)">@(PageIndex + 4)</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-dark" disabled></button>
+                        }
+                        <button class="btn btn-outline-dark" style="font-size:small" @onclick="next => Next()" disabled="@(PageIndex==InputPageList.Count-1)">Next</button>
+
+                        <button class="btn btn-outline-dark" style="font-size:small" @onclick="next => {PageIndex = InputPageList.Count-1;}" disabled="@(PageIndex==InputPageList.Count-1)">Last</button>
+                    </div>
+
+                </td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+</div>
+@code {
+    //----------List Of Objects For the Table------------------
+
+    [Parameter]
+    public List<TItem> InputList { get; set; }
+
+    //----------List Of Headings For the Table------------------
+    [Parameter]
+    public List<string> Headings { get; set; } = new List<string>();
+
+    //------------Primary key of the Object(Table)--------------
+    [Parameter]
+    public string PrimaryKeyPropertyName { get; set; }
+
+
+    //---------Number of records per page--------
+    [Parameter]
+    public int RecordsPerPage { get; set; } = 5;
+
+
+    //--------------RenderFragments To be Defined By The Parent Component-----------
+
+    [Parameter]
+    public RenderFragment HeadingRowTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> RowTemplate { get; set; }
+
+    [Parameter]
+    public RenderFragment<TItem> EditableFormInRowTemplate { get; set; }
+
+
+    //--------------Bools to be set as true if defining a RenderFragment Template by parent-------------------
+
+    [Parameter]
+    public bool DefinedARowTemplate { get; set; } = false;
+
+    [Parameter]
+    public bool DefinedAHeadingTemplate { get; set; } = false;
+
+    [Parameter]
+    public bool ValidateBeforeSubmit { get; set; } = false;
+
+    [Parameter]
+    public bool DefineASetNewInstanceFunc { get; set; } = false;
+
+    [Parameter]
+    public bool DefineProperties { get; set; } = false;
+
+    [Parameter]
+    public bool WasmApp { get; set; } = false;
+
+    //---------------Other Essential Fields required internally by this component--------------- 
+    [Parameter]
+    public PropertyInfo[] Properties { get; set; }
+
+    public bool AddingNewRow = false;
+
+    public bool EditingARow = false;
+
+    public bool SelectedSomething { get; set; }= false;
+
+    public TItem SelectedObj { get; set; }
+
+    public TItem EditingObj { get; set; }
+
+    public TItem CopyObj { get; set; }
+
+    public TItem AddNewObj { get; set; }
+
+
+    public int PageIndex = 0;
+
+    public int DeleteedId { get; set; }
+
+    public List<List<TItem>> InputPageList = new List<List<TItem>>();
+
+
+    public Type TableClassType { get; set; } = typeof(TItem);
+
+
+
+
+
+    // ------------ Required Functions -----------
+
+
+    [Parameter]
+    public Func<TItem,bool> ValidationFunction { get; set; }
+
+    [Parameter]
+    public Func<TItem> SetNewInstanceFunc { get; set; }
+
+
+
+    // ----------- Event CallBacks  --------------------------
+
+
+
+    [Parameter]
+    public  EventCallback<int> SaveNewEvent { get; set; }
+
+    [Parameter]
+    public  EventCallback<int> DeleteEvent { get; set; }
+
+    [Parameter]
+    public  EventCallback<int> UpdateEvent { get; set; }
+
+    [Parameter]
+    public EventCallback CancelEvent { get; set; }
+
+    [Parameter]
+    public EventCallback EditEvent { get; set; }
+
+    [Parameter]
+    public EventCallback AddNewEvent { get; set; }
+
+
+    //---------------------- OnInitialize Function ---------------------------
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Run(() =>
+        {
+            TableClassType = typeof(People);
+            if (!DefineProperties)
+            {
+                Properties = Getfields();
+            }
+            AddNewObj = ObjectInitilizer();
+            EditingObj = ObjectInitilizer();
+            SelectedObj = ObjectInitilizer();
+            CopyObj = ObjectInitilizer();
+            InputPageList = SplitForPaging<TItem>(InputList, RecordsPerPage);
+
+        });
+    }
+
+
+    //----------Returens a List Of all the properties of the class Rendering as TIten--------------------
+
+    public PropertyInfo[] Getfields()
+    {
+        return TableClassType.GetProperties();
+    }
+
+
+    //------------Other UI Functionalities
+
+    public string focusIfSelected(TItem obj)
+    {
+        if (Equals(obj, SelectedObj))
+        {
+            return "table-active";
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+
+    public bool VerifyAnySelected()
+    {
+        bool flag = false;
+        foreach (var item in InputList)
+        {
+            if (Equals(item, SelectedObj))
+            {
+                flag = true;
+            }
+
+        }
+        return flag;
+    }
+
+    public void SelectARow(TItem obj)
+    {
+        if (!EditingARow && !AddingNewRow)
+        {
+            SelectedObj = obj;
+            SelectedSomething = true;
+        }
+    }
+
+    public void AsignIndex(int num)
+    {
+        Cancel();
+        PageIndex = num;
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+
+
+    public bool Validate()
+    {
+        if (ValidateBeforeSubmit)
+        {
+            if (AddingNewRow)
+            {
+                return ValidationFunction(AddNewObj);
+            }
+            else if (EditingARow)
+            {
+                return ValidationFunction(EditingObj);
+            }
+            else
+            {
+                return true;
+            }
+        }
+        else
+        {
+            return true;
+        }
+
+    }
+
+    public bool EditingThisObj(TItem obj)
+    {
+
+        return (Equals(obj, EditingObj));
+
+    }
+
+    // ---------------- Button Functions --------------
+    public void Addnew()
+    {
+        if (!EditingARow)
+        {
+            AddingNewRow = true;
+        }
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+
+
+    public void EditRow(TItem Obj)
+    {
+        if (!AddingNewRow && !EditingARow)
+        {
+            EditingObj = Obj;
+            CopyObj = CopyFrom(CopyObj, Obj);
+            EditingARow = true;
+        }
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+
+    public void Cancel()
+    {
+
+        if (EditingARow)
+        {
+            EditingObj = GetOldDataFrom(EditingObj, CopyObj);
+        }
+        AddNewObj = ObjectInitilizer();
+        EditingObj = ObjectInitilizer();
+        SelectedObj = ObjectInitilizer();
+        CopyObj = ObjectInitilizer();
+        AddingNewRow = false;
+        EditingARow = false;
+        SelectedSomething = false;
+        InvokeAsync(() => { StateHasChanged(); });
+
+    }
+
+
+    public async void Update()
+    {
+        if (AddingNewRow || EditingARow)
+        {
+            if (AddingNewRow)
+            {
+                AddingNewRow = false;
+                InputList.Add(AddNewObj);
+                await SaveNewEvent.InvokeAsync(InputList.IndexOf(AddNewObj));
+                InputPageList = SplitForPaging<TItem>(InputList, RecordsPerPage);
+                PageIndex = InputPageList.Count - 1;
+                AddNewObj = ObjectInitilizer();
+            }
+            if (EditingARow)
+            {
+                EditingARow = false;
+                await UpdateEvent.InvokeAsync(InputList.IndexOf(EditingObj));
+                EditingObj = ObjectInitilizer();
+
+            }
+        }
+        await InvokeAsync(() =>{ StateHasChanged();});
+    }
+
+    public async void Delete()
+    {
+        if (SelectedSomething)
+        {
+
+
+            if (WasmApp)
+            {
+                await DeleteEvent.InvokeAsync((int)TableClassType.GetProperty(PrimaryKeyPropertyName).GetValue(SelectedObj, null));
+            }
+            else
+            {
+                await DeleteEvent.InvokeAsync(InputList.IndexOf(SelectedObj));
+            }
+
+            InputList.Remove(SelectedObj);
+            SelectedObj = ObjectInitilizer();
+            SelectedSomething = false;
+            InputPageList = SplitForPaging<TItem>(InputList, RecordsPerPage);
+            if (PageIndex >= InputPageList.Count) { PageIndex = InputPageList.Count-1;}
+            StateHasChanged();
+        }
+    }
+
+    public void Next()
+    {
+        if (PageIndex < InputPageList.Count - 1)
+        {
+            Cancel();
+            PageIndex++;
+        }
+        
+    }
+
+    public void Previous()
+    {
+        if (PageIndex > 0)
+        {
+            Cancel();
+            PageIndex--;
+        }
+        InvokeAsync(() => { StateHasChanged(); });
+    }
+
+
+
+    //-----------Copys the data into a backup Object-----------------
+
+    public TItem CopyFrom(TItem toObject, TItem fromObject)
+    {
+        foreach (var toProperty in Properties)
+        {
+            if (toProperty.GetValue(fromObject, null) != null)
+            {
+                toProperty.SetValue(toObject, TableClassType.GetProperty(toProperty.Name).GetValue(fromObject, null), null);
+            }
+            else
+            {
+                toProperty.SetValue(toObject, null, null);
+            }
+        }
+
+        return toObject;
+    }
+
+    //---------------Set Back the Old Data to the Edited Object If Clicked Cancel button------------------
+
+    public TItem GetOldDataFrom(TItem toObject, TItem fromObject)
+    {
+        foreach (var toProperty in Properties)
+        {
+            if (toProperty.Name != PrimaryKeyPropertyName)
+            {
+                if (toProperty.GetValue(fromObject, null) != null)
+                {
+                    toProperty.SetValue(toObject, TableClassType.GetProperty(toProperty.Name).GetValue(fromObject, null), null);
+                }
+                else
+                {
+                    toProperty.SetValue(toObject, null, null);
+                }
+            }
+
+        }
+
+        return toObject;
+    }
+
+    //---------------Splits the Inpur List into N number Pages based on RecordsPerPage Input-------------------------
+
+    public static List<List<T>> SplitForPaging<T>(IList<T> source, int count)
+    {
+        return source
+            .Select((x, i) => new { Index = i, Value = x })
+            .GroupBy(x => x.Index / count)
+            .Select(x => x.Select(v => v.Value).ToList())
+            .ToList();
+    }
+
+    // Sets new instance to the object internally
+    public TItem ObjectInitilizer()
+    {
+        if (DefineASetNewInstanceFunc)
+        {
+            return SetNewInstanceFunc();
+        }
+        else
+        {
+            return (TItem)TableClassType.GetConstructors()[0].Invoke(new Object[] { });
+        }
+    }
+}
+
