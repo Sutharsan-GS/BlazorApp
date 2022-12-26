@@ -58,15 +58,15 @@ else
     public bool Pageloading = true;
     public List<People> PeopleList = new List<People>();
     public People RefObject = new People();
-    Uri siteUri = new Uri("https://blazorappwasmwithdb.azurewebsites.net/People/api/Get");
-    HttpClient client = new HttpClient();
+    //Uri siteUri = new Uri("https://blazorappwasmwithdb.azurewebsites.net/People/api/Get");
+    //HttpClient client = new HttpClient();
 
 
     public PropertyInfo[] PeopleProp = typeof(People).GetProperties();
 
     protected override async Task OnInitializedAsync()
     {
-        PeopleList = await Http.GetFromJsonAsync<List<People>>(siteUri);
+        PeopleList = await Http.GetFromJsonAsync<List<People>>("People/api/Get");
         Pageloading = false;
     }
 
