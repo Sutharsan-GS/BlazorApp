@@ -1,18 +1,49 @@
 ﻿@page "/counter"
+@inject IJSRuntime JS
 
 <PageTitle>Counter</PageTitle>
 
 <h1>Counter</h1>
 
-<p role="status">Current count: @currentCount</p>
+<p role="status">Current count: <input type="number" @bind="currentCount"></input></p>
+<p role="status">Status : @message</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="IncrementCount">Add Count</button>
+
+<button class="btn btn-danger" @onclick="GetStoredCount">Restore Count</button>
+
+<button class="btn btn-success" @onclick="SetStoredCount">Save Count</button>
 
 @code {
     private int currentCount = 0;
 
+    public string message = "";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var conuntstring = await JS.InvokeAsync<string>("localStorage.getItem", "count");
+        currentCount = Convert.ToInt32(conuntstring);
+        message = "Count Restored On First load" + currentCount;
+    }
+
     private void IncrementCount()
     {
         currentCount++;
+        message = "Count Changed";
+    }
+    public async Task SetStoredCount()
+    {
+        await JS.InvokeVoidAsync("localStorage.setItem", "count", currentCount);
+        message = "Count Saved " + currentCount;
+    }
+
+
+    public async Task GetStoredCount()
+    {
+        var conuntstring = await JS.InvokeAsync<string>("localStorage.getItem", "count");
+        currentCount = Convert.ToInt32(conuntstring);
+        message = "Count Restored " + " "+ currentCount;
+
     }
 }

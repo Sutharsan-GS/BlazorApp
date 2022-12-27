@@ -2,7 +2,7 @@
 @using System
 @using System.Reflection
 @using System.Collections.Generic;
-@using BlazorApp1.Shared
+
 
 @typeparam TItem
 
@@ -15,11 +15,11 @@
             <tr>
                 <th class="table-primary" scope="col" colspan="100%" align="center">
                     <div class="btn-group-sm" role="group" align="center">
-                        <button class="btn btn-outline-dark" @onclick="Addnew">Add</button>
-                        <button class="btn btn-outline-primary" @onclick="() => EditRow(SelectedObj)">Edit</button>
-                        <button class="btn btn-outline-success" @onclick="Update" disabled="@(!Validate())">Update</button>
+                        <button class="btn btn-outline-dark" @onclick="Addnew" disabled="@(EditingARow)">Add</button>
+                        <button class="btn btn-outline-primary" @onclick="() => EditRow(SelectedObj)" disabled="@(AddingNewRow || !SelectedSomething)">Edit</button>
+                        <button class="btn btn-outline-success" @onclick="Update" disabled="@(!Validate() && (!AddingNewRow || !EditingARow))">Update</button>
                         <button class="btn btn-outline-primary" @onclick="Cancel">Cancel</button>
-                        <button class="btn btn-outline-danger" @onclick="Delete">Delete</button>
+                        <button class="btn btn-outline-danger" @onclick="Delete" disabled="@(EditingARow || AddingNewRow ||!SelectedSomething)">Delete</button>
                     </div>
 
                 </th>
@@ -48,10 +48,15 @@
                 else
                 {
                     <tr>
-                        @foreach (PropertyInfo prop in Properties)
+                        @if(Properties.Length>0)
                         {
-                            <td class="table-primary" scope="col">@(prop.Name)</td>
+                            @foreach (PropertyInfo prop in Properties)
+                            {
+                                <td class="table-primary" scope="col">@(prop.Name)</td>
+                            }
+
                         }
+                        
                     </tr>
 
                 }
@@ -89,9 +94,13 @@
                         else
                         {
                             <tr class="@focusIfSelected(Obj)" @onclick="(() => SelectARow(Obj)) " @ondblclick="(() => {SelectARow(Obj);EditRow(Obj);} ) ">
-                                @foreach (PropertyInfo prop in Properties)
+                                @if(Properties.Length>0)
                                 {
-                                    <td class="table-primary" scope="col">@(prop.GetValue(Obj, null))</td>
+      
+                                    @foreach (PropertyInfo prop in Properties)
+                                    {
+                                        <td class="table-primary" scope="col">@(prop.GetValue(Obj, null))</td>
+                                    }
                                 }
                             </tr>
                         }
@@ -229,7 +238,7 @@
     public bool DefineProperties { get; set; } = false;
 
     [Parameter]
-    public bool WasmApp { get; set; } = false;
+    public bool DeleteById { get; set; } = false;
 
     //---------------Other Essential Fields required internally by this component--------------- 
     [Parameter]
@@ -252,7 +261,7 @@
 
     public int PageIndex = 0;
 
-    public int DeleteedId { get; set; }
+    
 
     public List<List<TItem>> InputPageList = new List<List<TItem>>();
 
@@ -299,22 +308,20 @@
 
     //---------------------- OnInitialize Function ---------------------------
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await Task.Run(() =>
-        {
-            TableClassType = typeof(People);
-            if (!DefineProperties)
-            {
-                Properties = Getfields();
-            }
-            AddNewObj = ObjectInitilizer();
-            EditingObj = ObjectInitilizer();
-            SelectedObj = ObjectInitilizer();
-            CopyObj = ObjectInitilizer();
-            InputPageList = SplitForPaging<TItem>(InputList, RecordsPerPage);
 
-        });
+        TableClassType = typeof(TItem);
+        if (!DefineProperties)
+        {
+            Properties = Getfields();
+        }
+        AddNewObj = ObjectInitilizer();
+        EditingObj = ObjectInitilizer();
+        SelectedObj = ObjectInitilizer();
+        CopyObj = ObjectInitilizer();
+        InputPageList = SplitForPaging<TItem>(InputList, RecordsPerPage);
+
     }
 
 
@@ -409,8 +416,9 @@
         if (!EditingARow)
         {
             AddingNewRow = true;
+            AddNewObj = ObjectInitilizer();
         }
-        InvokeAsync(() => { StateHasChanged(); });
+        StateHasChanged();
     }
 
 
@@ -422,7 +430,7 @@
             CopyObj = CopyFrom(CopyObj, Obj);
             EditingARow = true;
         }
-        InvokeAsync(() => { StateHasChanged(); });
+        StateHasChanged();
     }
 
     public void Cancel()
@@ -439,7 +447,7 @@
         AddingNewRow = false;
         EditingARow = false;
         SelectedSomething = false;
-        InvokeAsync(() => { StateHasChanged(); });
+        StateHasChanged();
 
     }
 
@@ -465,16 +473,15 @@
 
             }
         }
-        await InvokeAsync(() =>{ StateHasChanged();});
+        StateHasChanged();
     }
 
     public async void Delete()
     {
         if (SelectedSomething)
         {
-
-
-            if (WasmApp)
+            
+            if(DeleteById)
             {
                 await DeleteEvent.InvokeAsync((int)TableClassType.GetProperty(PrimaryKeyPropertyName).GetValue(SelectedObj, null));
             }
@@ -509,7 +516,7 @@
             Cancel();
             PageIndex--;
         }
-        InvokeAsync(() => { StateHasChanged(); });
+        StateHasChanged();
     }
 
 
