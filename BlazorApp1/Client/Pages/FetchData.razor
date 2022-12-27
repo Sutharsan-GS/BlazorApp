@@ -1,12 +1,20 @@
 ﻿@page "/fetchdata"
 @using BlazorApp1.Shared
 @inject HttpClient Http
+@inject ILocalStorageService Local
 
 <PageTitle>Weather forecast</PageTitle>
 
 <h1>Weather forecast</h1>
 
-<p>This component demonstrates fetching data from the server.</p>
+<p>This component demonstrates fetching data from Static Json file.</p>
+
+<div>
+    <input type="date" @bind="NewData.Date" />
+    <input type="number" @bind="NewData.TemperatureC" placeholder="Temperature" />
+    <input type="text" @bind="NewData.Summary" placeholder="Summary" />
+    <button class="btn btn-success" @onclick="Add">Add</button>
+</div>
 
 @if (forecasts == null)
 {
@@ -21,6 +29,7 @@ else
                 <th>Temp. (C)</th>
                 <th>Temp. (F)</th>
                 <th>Summary</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -31,17 +40,116 @@ else
                     <td>@forecast.TemperatureC</td>
                     <td>@forecast.TemperatureF</td>
                     <td>@forecast.Summary</td>
+                    <td> <button class="btn btn-danger" @onclick="() => Delete(forecast)">Delete</button></td>
                 </tr>
             }
         </tbody>
     </table>
-}
 
+    <button class="btn btn-primary" style="margin:5px;" @onclick="GetStored">Restore </button>
+
+    <button class="btn btn-success" style="margin:5px;" @onclick="StoreData">Save </button>
+
+    @if (Newforecasts.Count > 0)
+    {
+        <h2>Weather forecast From Local Stored</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Temp. (C)</th>
+                    <th>Temp. (F)</th>
+                    <th>Summary</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var forecast in Newforecasts)
+                {
+                    <tr>
+                        <td>@forecast.Date.ToShortDateString()</td>
+                        <td>@forecast.TemperatureC</td>
+                        <td>@forecast.TemperatureF</td>
+                        <td>@forecast.Summary</td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <h4>@message </h4>
+    }
+
+}
 @code {
-    private WeatherForecast[]? forecasts;
+    public List<WeatherForecast>? forecasts = new List<WeatherForecast>();
+
+    public List<WeatherForecast>? Newforecasts = new List<WeatherForecast>();
+
+    public WeatherForecast NewData = new WeatherForecast();
+
+    public string message = "Nothing Saved Yet !";
+
 
     protected override async Task OnInitializedAsync()
     {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+        WeatherForecast[] arrays = await Http.GetFromJsonAsync<WeatherForecast[]>("WeatherForecast");
+        forecasts = arrays.ToList<WeatherForecast>();
+
+        bool value =  await Local.ContainKeyAsync("WeathersData");
+
+        if(value)
+        {
+            Newforecasts = await Local.GetItemAsync<List<WeatherForecast>>("WeathersData");
+            if (Newforecasts.Count == 0)
+            {
+                message = "No Data Found";
+            }
+
+        }
+        else
+        {
+            await Local.SetItemAsync<List<WeatherForecast>>("WeathersData", new List<WeatherForecast>());
+
+        }
+
+
+
+    }
+
+    public async Task GetStored()
+    {
+        Newforecasts = await Local.GetItemAsync<List<WeatherForecast>>("WeathersData");
+        if (Newforecasts.Count > 0)
+        {
+            message = "No Data Found";
+        }
+    }
+
+    public async Task StoreData()
+    {
+        await Local.SetItemAsync<List<WeatherForecast>>("WeathersData", forecasts);
+        if (Newforecasts.Count == 0)
+        {
+            message = "No Data Found";
+        }
+    }
+
+    public void Add()
+    {
+        if (NewData.TemperatureC == null)
+        {
+            NewData.TemperatureC = 0;
+        }
+        forecasts.Add(NewData);
+        NewData = new WeatherForecast();
+    }
+
+    public void Delete(WeatherForecast del)
+    {
+        forecasts.Remove(del);
     }
 }
+
+

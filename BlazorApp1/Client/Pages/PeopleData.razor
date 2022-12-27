@@ -8,8 +8,8 @@
 
 @if (Pageloading)
 {
-    <div style=" margin-top:23%" align="center">
-        <p>Loading Please Wait !:)</p>
+    <div style=" margin-top:21%" align="center">
+        <p>Loading Please Wait :)</p>
         <br/>
         <div class="spinner-border" align="center"></div>
     </div>
@@ -23,7 +23,7 @@ else
   
   
      
-        <DataGrid InputList=@PeopleList Context="people" PrimaryKeyPropertyName="Id" RecordsPerPage="4" DefineProperties="true" Properties="@PeopleProp" WasmApp="true"
+        <DataGrid InputList=@PeopleList Context="people" PrimaryKeyPropertyName="Id" RecordsPerPage="4"  DeleteById="false"
               SaveNewEvent=@(Addpeople) UpdateEvent=@(Updatepeople) DeleteEvent="@(DeletePeople)"  >
 
                 <EditableFormInRowTemplate >
@@ -62,7 +62,7 @@ else
     //HttpClient client = new HttpClient();
 
 
-    public PropertyInfo[] PeopleProp = typeof(People).GetProperties();
+  
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,11 +71,6 @@ else
     }
 
 
-    public People SetNewPeopleObj()
-    {
-
-        return new People();
-    }
 
     public async Task Addpeople(int index)
     {
@@ -104,7 +99,7 @@ else
     public async Task DeletePeople(int id)
     {
         // The Delete Accepts only Ids of the Object
-        await Http.DeleteAsync("People/api/Delete/" + id);
+        await Http.DeleteAsync("People/api/Delete/" + PeopleList[id].Id);
         await InvokeAsync(() =>
                 {
 
